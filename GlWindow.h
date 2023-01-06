@@ -23,7 +23,12 @@ public:
     bool getShouldClose() { return glfwWindowShouldClose(window); }
     void swapBuffers() { return glfwSwapBuffers(window); }
 
-    void handleKeyPresses(Mesh *mesh);
+    static void handleKeyPresses(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void handleMouseMovement(GLFWwindow* window, double xpos, double ypos);
+    
+    bool* getKeys() { return keys; }
+    GLfloat getXChange();
+    GLfloat getYChange();
 
     void destroyWindow();
     
@@ -34,4 +39,11 @@ private:
     int bufferWidth, bufferHeight;
     GLint width, height;
     std::string title;
+    bool keys[1024];
+
+    GLfloat lastX;
+    GLfloat lastY;
+    GLfloat xChange;
+    GLfloat yChange;
+    bool isFirstMouseMove;
 };

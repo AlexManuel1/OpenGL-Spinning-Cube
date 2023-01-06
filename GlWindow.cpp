@@ -5,6 +5,13 @@ GlWindow::GlWindow()
     width = 800;
     height = 600;
     title = "window";
+
+    for (int i = 0; i < 1024; i++)
+    {
+        keys[i] = false;
+    }
+
+    isFirstMouseMove = true;
 }
 
 GlWindow::GlWindow(GLint windowWidth, GLint windowHeight, std::string windowTitle)
@@ -12,6 +19,13 @@ GlWindow::GlWindow(GLint windowWidth, GLint windowHeight, std::string windowTitl
     width = windowWidth;
     height = windowHeight;
     title = windowTitle;
+
+    for (int i = 0; i < 1024; i++)
+    {
+        keys[i] = false;
+    }
+
+    isFirstMouseMove = true;
 }
 
 int GlWindow::Initialize()
@@ -42,51 +56,71 @@ int GlWindow::Initialize()
     glfwGetFramebufferSize(window, &bufferWidth, &bufferHeight);
     glfwMakeContextCurrent(window);
 
+    // set callbacks for key press and movement
+    glfwSetKeyCallback(window, handleKeyPresses);
+    glfwSetCursorPosCallback(window, handleMouseMovement);
+
+    // lock cursor to window and hide it
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    // associate this class with GLFWwindow object
+    glfwSetWindowUserPointer(window, this);
+
     return 0;
 }
 
-void GlWindow::handleKeyPresses(Mesh *mesh)
+void GlWindow::handleKeyPresses(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    GlWindow *w = static_cast<GlWindow*>(glfwGetWindowUserPointer(window));
+
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
-        mesh->HandleRotation(1, false);
+        glfwSetWindowShouldClose(window, GL_TRUE);
     }
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+
+    if (key >= 0 && key < 1024)
     {
-        mesh->HandleRotation(1, true);
+        if (action == GLFW_PRESS)
+        {
+            w->keys[key] = true;
+        }
+        else if (action == GLFW_RELEASE)
+        {
+            w->keys[key] = false;
+        }
     }
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+}
+
+void GlWindow::handleMouseMovement(GLFWwindow *window, double xpos, double ypos)
+{
+    GlWindow *w = static_cast<GlWindow*>(glfwGetWindowUserPointer(window));
+
+    if (w->isFirstMouseMove)
     {
-        mesh->HandleRotation(0, true);
+        w->lastX = xpos;
+        w->lastY = ypos;
+        w->isFirstMouseMove = false;
     }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        mesh->HandleRotation(0, false);
-    }
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    {
-        mesh->HandleTranslation(2, true);
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    {
-        mesh->HandleTranslation(2, false);
-    }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
-        mesh->HandleTranslation(0, true);
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
-        mesh->HandleTranslation(0, false);
-    }
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-    {
-        mesh->HandleTranslation(1, false);
-    }
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-    {
-        mesh->HandleTranslation(1, true);
-    }
+
+    w->xChange = xpos - w->lastX;
+    w->yChange = w->lastY - ypos;
+
+    w->lastX = xpos;
+    w->lastY = ypos;
+}
+
+GLfloat GlWindow::getXChange()
+{
+    GLfloat change = xChange;
+    xChange = 0.0f;
+    return change;
+}
+
+GLfloat GlWindow::getYChange()
+{
+    GLfloat change = yChange;
+    yChange = 0.0f;
+    return change;
 }
 
 void GlWindow::destroyWindow()
@@ -99,6 +133,5 @@ void GlWindow::destroyWindow()
 
 GlWindow::~GlWindow()
 {
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    destroyWindow();
 }

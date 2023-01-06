@@ -15,11 +15,17 @@
 #include "GlWindow.h"
 #include "Mesh.h"
 #include "Shader.h"
+#include "Camera.h"
 
 // initialize mesh list, shader list, and main window
 std::vector<Mesh*> meshList;
 std::vector<Shader*> shaderList;
 GlWindow *mainWindow;
+Camera *camera = new Camera(glm::vec3(0.0f, 0.0f, 0.0f), -90.0f, 0.0f, 5.0f, 1.0f);
+// instantiate delta time
+double prevTime = glfwGetTime();
+double currentTime;
+double deltaTime;
 
 // shader code locations
 static const char *vertexLocation = "Shaders/shader.vert";
@@ -102,6 +108,7 @@ int main()
     }
 
     GLuint uniformModel = 0;
+    GLuint uniformView = 0;
     GLuint uniformProjection = 0;
 
     // projection matrix
@@ -112,22 +119,35 @@ int main()
         100.0f
     );
 
-    meshList[0]->UpdateTranslationValuesZ(-7.0f, 0.1f, -100.0f);
+    //meshList[0]->UpdateTranslationValuesZ(-7.0f, 0.1f, -100.0f);
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0, 0, -7));
 
     while (!mainWindow->getShouldClose())
     {
-        glfwPollEvents();
+        // handle deltaTime for movement
+        currentTime = glfwGetTime();
+        deltaTime = currentTime - prevTime;
+        prevTime = currentTime;
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mainWindow->handleKeyPresses(meshList[0]); // handle key presses
+        glfwPollEvents();
+
+        // handle camera input
+        camera->mouseControl(mainWindow->getXChange(), mainWindow->getYChange());
+        camera->keyControl(mainWindow->getKeys(), deltaTime);
 
         shaderList[0]->UseShader();
         uniformModel = shaderList[0]->getModelLocation();
+        uniformView = shaderList[0]->getViewLocation();
         uniformProjection = shaderList[0]->getProjectionLocation();
 
-        glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(meshList[0]->GetModelMatrix()));
+        // insert uniforms to shader
+        glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera->calcViewMatrix()));
 
         meshList[0]->RenderMesh();
         glUseProgram(0);
